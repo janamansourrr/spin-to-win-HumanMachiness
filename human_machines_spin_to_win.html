@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spin to Win</title>
+<style>
+:root{--red:#e50914;--red2:#ff3340;--black:#080808;--card:#111;--muted:#aaa;--white:#fff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#351015 0,#0a0a0a 45%,#000 100%);font-family:Arial,Helvetica,sans-serif;color:#fff;display:flex;justify-content:center;overflow-x:hidden}
+.wrap{width:min(1100px,100%);padding:28px 18px 50px;text-align:center}
+.badge{display:inline-block;border:1px solid #5c2025;background:#16090a;color:#ff9da2;border-radius:999px;padding:8px 14px;font-size:12px;letter-spacing:2px;font-weight:700}
+h1{font-size:clamp(36px,7vw,72px);margin:14px 0 4px;font-weight:900;letter-spacing:-2px}
+h1 span{color:var(--red2)} h1 small{display:block;color:#fff;font-size:.62em;letter-spacing:-1px;margin-top:4px}
+.sub{color:#bcbcbc;margin:0 auto 22px;max-width:650px;font-size:16px}
+.game{display:flex;justify-content:center;align-items:center;width:100%}
+.wheelBox{position:relative;display:grid;place-items:center;width:min(620px,100%);margin:0 auto}
+canvas{width:min(86vw,560px);height:min(86vw,560px);max-width:560px;max-height:560px;filter:drop-shadow(0 18px 45px #000)}
+.pointer{position:absolute;top:1%;z-index:4;width:0;height:0;border-left:17px solid transparent;border-right:17px solid transparent;border-top:35px solid #fff;filter:drop-shadow(0 4px 5px #000)}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:86px;height:86px;border-radius:50%;background:#090909;border:7px solid #fff;box-shadow:0 0 0 4px var(--red),0 0 30px #e5091480;display:grid;place-items:center;font-weight:900;font-size:12px;letter-spacing:1px;z-index:3}
+.spin{margin-top:16px;border:0;background:linear-gradient(135deg,#ff3b45,#c8000b);color:#fff;font-size:20px;font-weight:900;padding:16px 42px;border-radius:14px;cursor:pointer;box-shadow:0 12px 30px #e5091450;transition:.15s;letter-spacing:1px}
+.spin:hover{transform:translateY(-2px)} .spin:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.panel{display:none;background:linear-gradient(180deg,#151515,#0d0d0d);border:1px solid #2b2b2b;border-radius:22px;padding:22px;text-align:left;box-shadow:0 20px 60px #0008}
+.panel h2{margin:0 0 6px;font-size:22px}.panel p{margin:0 0 18px;color:#999;font-size:13px}
+.reward{display:flex;align-items:center;gap:10px;padding:11px 12px;margin:8px 0;border:1px solid #242424;border-radius:12px;background:#101010}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 10px #e5091480}.reward b{font-size:13px}.pct{margin-left:auto;color:#ff7379;font-weight:800}
+.note{font-size:11px;color:#777;margin-top:14px;line-height:1.5}
+.result{position:fixed;inset:0;background:#000b;display:none;place-items:center;z-index:20;padding:20px}
+.modal{width:min(520px,100%);background:#101010;border:1px solid #3a3a3a;border-radius:24px;padding:34px 24px;box-shadow:0 30px 100px #000}
+.win{font-size:12px;letter-spacing:3px;color:#ff777d;font-weight:900}.prize{font-size:clamp(28px,6vw,50px);font-weight:900;margin:12px 0 22px}.close{border:0;border-radius:12px;padding:13px 28px;background:#fff;color:#000;font-weight:900;cursor:pointer}
+.edit{margin-top:20px;text-align:center}.edit button{background:none;border:1px solid #333;color:#777;border-radius:10px;padding:8px 12px;font-size:11px;cursor:pointer}
+.editor{display:none;margin-top:18px;border-top:1px solid #292929;padding-top:18px}
+.row{display:grid;grid-template-columns:1fr 70px;gap:8px;margin:8px 0}.row input{width:100%;background:#090909;color:#fff;border:1px solid #333;border-radius:8px;padding:9px}.save{width:100%;margin-top:8px;padding:11px;border:0;border-radius:9px;background:#e50914;color:#fff;font-weight:800}
+@media(max-width:820px){.wrap{padding-left:10px;padding-right:10px}.wheelBox{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="badge">REFERRAL REWARDS</div>
+  <h1><span>HUMAN MACHINES</span><br><small>SPIN TO WIN</small></h1>
+  <p class="sub">Refer your friends, spin the wheel, and discover your reward.</p>
+
+  <div class="game">
+    <div class="wheelBox">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="900" height="900"></canvas>
+      <div class="center">SPIN</div>
+      <button class="spin" id="spinBtn">SPIN THE WHEEL</button>
+    </div>
+
+    <div class="panel">
+      <h2>Your Possible Rewards</h2>
+      <p>Current reward probabilities</p>
+      <div id="list"></div>
+      <div class="note">The wheel uses weighted random selection, so each reward appears according to its percentage.</div>
+      <div class="edit"><button id="editBtn">EDIT REWARDS</button></div>
+      <div class="editor" id="editor"></div>
+    </div>
+  </div>
+</div>
+
+<div class="result" id="result">
+  <div class="modal">
+    <div class="win">🎉 CONGRATULATIONS</div>
+    <div class="prize" id="prize"></div>
+    <button class="close" id="close">CLAIM REWARD</button>
+  </div>
+</div>
+
+<script>
+const defaultRewards = [
+  {name:"2 WEEKS FREE", p:25},
+  {name:"1 MONTH FREE", p:10},
+  {name:"60% OFF", p:20},
+  {name:"FREE FITNESS PLAN", p:18},
+  {name:"FREE DIET PLAN", p:12},
+  {name:"THE SUMMARY BOOK 📖", p:12},
+  {name:"1:1 CALL WITH YOUR COACH", p:3}
+];
+
+let rewards = JSON.parse(localStorage.getItem("spinRewards") || "null") || defaultRewards;
+const canvas=document.getElementById("wheel"), ctx=canvas.getContext("2d");
+const spinBtn=document.getElementById("spinBtn"), result=document.getElementById("result"), prize=document.getElementById("prize");
+let rotation=0, spinning=false;
+const SPIN_USED_KEY = "spinUsed";
+
+function total(){return rewards.reduce((a,r)=>a+Number(r.p||0),0)}
+function draw(){
+  const cx=450,cy=450,r=420;
+  ctx.clearRect(0,0,900,900);
+  const colors=["#e50914","#8e0710","#ff3943","#5f080d","#c60c16","#260204","#f01d29","#3d0508"];
+  let start=-Math.PI/2;
+  const visualAngle=(Math.PI*2)/rewards.length;
+  rewards.forEach((item,i)=>{
+    const angle=visualAngle;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+angle);ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length];ctx.fill();
+    ctx.lineWidth=5;ctx.strokeStyle="#090909";ctx.stroke();
+
+    const mid=start+angle/2;
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate(mid);
+    ctx.textAlign="right";
+    ctx.textBaseline="middle";
+    ctx.fillStyle="#fff";
+
+    const label=item.name.toUpperCase();
+    let fontSize=25;
+    if(label.length>26) fontSize=16;
+    else if(label.length>20) fontSize=19;
+    else if(label.length>15) fontSize=22;
+    ctx.font=`900 ${fontSize}px Arial`;
+
+    // Keep the very small 1:1 slice readable without changing its probability.
+    if(label==="1:1 CALL WITH YOUR COACH"){
+      ctx.font="900 12px Arial";
+      ctx.fillText("1:1 CALL",r-22,-7);
+      ctx.fillText("WITH YOUR COACH",r-22,8);
+    }else{
+      ctx.fillText(label,r-28,0);
+    }
+    ctx.restore();
+    start+=angle;
+  });
+
+  ctx.beginPath();ctx.arc(cx,cy,55,0,Math.PI*2);ctx.fillStyle="#080808";ctx.fill();
+}
+function weightedPick(){
+  let x=Math.random()*total();
+  for(let i=0;i<rewards.length;i++){x-=Number(rewards[i].p);if(x<0)return i}
+  return rewards.length-1;
+}
+function spin(){
+  if(spinning || localStorage.getItem(SPIN_USED_KEY)==="true")return;
+
+  // Lock the client to one spin before the animation starts.
+  localStorage.setItem(SPIN_USED_KEY,"true");
+  spinning=true;
+  spinBtn.disabled=true;
+
+  const selected=weightedPick();
+  const seg=(Math.PI*2)/rewards.length;
+  const start=-Math.PI/2 + selected*seg;
+  const targetCenter=start+seg/2;
+  const desired=-targetCenter;
+  const current=((rotation%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+  let delta=desired-current; if(delta<0)delta+=Math.PI*2;
+  delta+=Math.PI*2*(5+Math.floor(Math.random()*3));
+  const from=rotation,to=rotation+delta,dur=4800,t0=performance.now();
+  function anim(t){
+    const q=Math.min(1,(t-t0)/dur), eased=1-Math.pow(1-q,4);
+    rotation=from+(to-from)*eased;
+    canvas.style.transform=`rotate(${rotation}rad)`;
+    if(q<1)requestAnimationFrame(anim);else{
+      prize.textContent=rewards[selected].name;
+      result.style.display="grid";spinning=false;spinBtn.disabled=true;
+    }
+  }
+  requestAnimationFrame(anim);
+}
+if(localStorage.getItem(SPIN_USED_KEY)==="true"){
+  spinBtn.disabled=true;
+  spinBtn.textContent="SPIN ALREADY USED";
+}
+
+spinBtn.onclick=spin;
+document.getElementById("close").onclick=()=>result.style.display="none";
+result.onclick=e=>{if(e.target===result)result.style.display="none"};
+draw();
+</script>
+</body>
+</html>
